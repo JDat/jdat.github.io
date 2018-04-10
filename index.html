@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Rocket launch scheduler</title>
+<style>
+body {
+    font-family: "Lato", sans-serif;
+}
+
+.setupmenu {
+    font-size:30px;
+    cursor:pointer;
+    text-align:right;
+}
+.sidenav {
+    height: 100%;
+    width: 0;
+    position: fixed;
+    z-index: 1;
+    top: 0;
+    left: 0;
+    background-color: #ffffff;
+    overflow-x: hidden;
+    transition: 0.1s;
+    padding-top: 60px;
+    text-align:center;
+}
+
+.sidenav a {
+    padding: 8px 8px 8px 32px;
+    text-decoration: none;
+    font-size: 25px;
+    color: #000000;
+    display: block;
+    transition: 0.1s;
+
+}
+
+.sidenav a:hover{
+    color: #000000;
+}
+
+.sidenav span {
+    color: #000000;
+    display: block;
+}
+
+
+.sidenav span:hover{
+    color: #000000;
+}
+
+.sidenav .closebtn {
+    position: absolute;
+    top: 0;
+    right: 25px;
+    font-size: 36px;
+    margin-left: 50px;
+}
+
+@media screen and (max-height: 450px) {
+  .sidenav {padding-top: 15px;}
+  .sidenav a {font-size: 18px;}
+  .sidenav span {font-size: 18px;}
+}
+</style>
+
+<script>
+function openNav() {
+    document.getElementById("mySidenav").style.width = "100%";
+}
+
+function closeNav() {
+    document.getElementById("mySidenav").style.width = "0";
+}
+
+var launchTimeMS=0;
+var burnOutTimeMS=2*1000;
+var apogeeTimeMS=11*1000;
+var drogueChuteTimeMS=13*1000;
+var mainChuteTimeMS=13*1000;
+var landingTimeMS=140*1000;
+
+function inc(id, pos) {
+    var h=parseInt(document.getElementById(id).value);
+    var k=Math.pow(10,parseInt(pos));
+    var i=Math.floor((h / k) % 10);
+    var j=h-k*i;
+    i=i+1;
+    if (i>9) {
+        i=0;
+    }
+    j=j+k*i;
+    document.getElementById(id).value=j.toString();
+    storeSettings();
+}
+function storeSettings() {
+    if(typeof(Storage) !== "undefined") {
+        if (localStorage.launchTime) {
+            //launchTimeMS=parseInt(document.getElementById("launchT").value)*1000;
+            localStorage.launchTime = launchTimeMS;
+        } else {
+            localStorage.launchTime = 0;
+        }
+
+        if (localStorage.burnout) {
+            burnOutTimeMS=parseInt(document.getElementById("burnout").value)*1000;
+            localStorage.burnout = burnOutTimeMS;
+        } else {
+            localStorage.burnout = 3000;
+        }
+
+        if (localStorage.apogee) {
+            apogeeTimeMS = parseInt(document.getElementById("apogee").value*1000);
+            localStorage.apogee = apogeeTimeMS;
+        } else {
+            localStorage.apogee = 16000;
+        }
+
+        if (localStorage.drogue) {
+            drogueChuteTimeMS = parseInt(document.getElementById("drogue").value*1000);
+            localStorage.drogue = drogueChuteTimeMS;
+        } else {
+            localStorage.drogue = 18000;
+        }
+        
+        if (localStorage.chute) {
+            mainChuteTimeMS = parseInt(document.getElementById("chute").value*1000);
+            localStorage.chute = mainChuteTimeMS;
+        } else {
+            localStorage.chute = 25000;
+        }
+
+        if (localStorage.landing) {
+            landingTimeMS = parseInt(document.getElementById("landing").value*1000);
+            localStorage.landing =landingTimeMS;
+        } else {
+            localStorage.landing = 37000;
+        }
+                                
+    } else {
+        console.log("browser does not support web storage...");
+    }
+}
+
+function readSettings(){
+    if(typeof(Storage) !== "undefined") {
+        if (typeof(localStorage.launchTime) == "undefined") {
+            localStorage.setItem("launchTime", 0);
+        }
+        launchTimeMS=parseInt(localStorage.launchTime);
+        if (typeof(localStorage.burnout) == "undefined") {
+            localStorage.setItem("burnout", 3000);
+        }
+        burnOutTimeMS=parseInt(localStorage.burnout);
+        
+        if (typeof(localStorage.apogee) == "undefined") {
+            localStorage.setItem("apogee", 16000);
+        }
+        apogeeTimeMS=parseInt(localStorage.apogee);
+        //document.getElementById("apogee").value=localStorage.apogee;
+        
+        if (typeof(localStorage.drogue) == "undefined") {
+            localStorage.setItem("drogue" , 18000);
+        }
+        drogueChuteTimeMS=parseInt(localStorage.drogue);
+        //document.getElementById("drogue").value=localStorage.drogue;
+
+        if (typeof(localStorage.chute) == "undefined") {
+            localStorage.setItem("chute" , 300);
+        }
+        mainChuteTimeMS=parseInt(localStorage.chute);
+        //document.getElementById("chute").value=localStorage.chute;
+
+        if (typeof(localStorage.landing) == "undefined") {
+            localStorage.setItem("landing" , 600);
+        }
+        landingTimeMS=parseInt(localStorage.landing);
+        //document.getElementById("landing").value=localStorage.landing;
+
+        
+    } else {
+        console.log("browser does not support web storage...");
+    }    
+}
+
+function updateData(id,timedData){
+    var j;
+    var k;
+    //var i=launchTime-globalTimeNow+burnOutTimeMS;
+    var i=launchTime-globalTimeNow+timedData;
+    if (i<0){
+        j=new Date(launchTime+timedData);
+        document.getElementById(id+"T").value=([j.getHours(), j.getMinutes(), j.getSeconds()].join(":"))+"."+Math.floor(j.getMilliseconds()/100);
+        document.getElementById(id+"T").style.backgroundColor="green";
+    } else {
+        j=new Date(i);
+        k=j.getSeconds()+Math.floor(j.getMilliseconds()/100)/10;
+        document.getElementById(id+"T").value=k.toString();
+        document.getElementById(id+"T").style.backgroundColor="red";
+    }
+    if (id!="launch") {
+        document.getElementById(id).value=Math.floor(timedData/1000);
+    }
+    if (!launchTrigger){
+        document.getElementById(id+"T").style.backgroundColor="white";
+    }
+
+}
+
+var globalTimeNow=Date.now();
+
+var launchTime;
+var launchTrigger=0;
+
+function timerEvents(){
+    globalTimeNow=Date.now();
+    if (!launchTrigger){
+        launchTime=globalTimeNow;
+    }
+    updateData("launch",launchTimeMS);
+    updateData("burnout",burnOutTimeMS);
+    updateData("apogee",apogeeTimeMS);
+    updateData("drogue",drogueChuteTimeMS);
+    updateData("chute",mainChuteTimeMS);
+    updateData("landing",landingTimeMS);
+    
+    setTimeout('timerEvents()',100);
+}
+function initData(){
+    readSettings();
+    setTimeout('timerEvents()');
+}
+
+function flipLaunchTrigger(){
+    launchTrigger=~launchTrigger;
+}
+
+function generateDownload(){
+    var headData="data:application/plain;charset=US-ASCII,";
+    var textData;
+    
+    textData="Launch," + document.getElementById("launchT").value+",";
+    textData+="Burnout," + document.getElementById("burnoutT").value+",";
+    textData+="Apogee," + document.getElementById("apogeeT").value+",";
+    textData+="Drogue," + document.getElementById("drogueT").value+",";
+    textData+="Chute," + document.getElementById("chuteT").value+",";
+    textData+="Landing," + document.getElementById("landingT").value+",";
+    document.getElementById("download").href=headData+textData;
+    var filename;
+    var d=new Date();
+    filename=d.getFullYear()+"-";
+    filename+=d.getMonth()+"-";
+    filename+=d.getDate()+"_";
+    filename+=d.getHours()+"-";
+    filename+=d.getMinutes()+"-";
+    filename+=d.getSeconds()+".txt";
+    document.getElementById("download").download=filename;
+}
+</script>
+
+</head>
+<body onLoad="initData()">
+
+<div id="mySidenav" class="sidenav">
+  <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
+  <span>Motor Burnout:
+  <input id="burnout" type="text" value="123" size="3" maxlength="3" onClick="this.select();">
+  <input type="button" value="+100" onClick="inc('burnout',2)">
+  <input type="button" value="+10" onClick="inc('burnout',1)">
+  <input type="button" value="+1" onClick="inc('burnout',0)">
+  </span>
+  <br>
+  <span>Apogee:
+  <input id="apogee" type="text" value="123" size="3" maxlength="3" onClick="this.select();">
+  <input type="button" value="+100" onClick="inc('apogee',2)">
+  <input type="button" value="+10" onClick="inc('apogee',1)">
+  <input type="button" value="+1" onClick="inc('apogee',0)">
+  </span>
+  <br>
+  <span>Drogue chute:
+  <input id="drogue" type="text" value="123" size="3" maxlength="3" onClick="this.select();">
+  <input type="button" value="+100" onClick="inc('drogue',2)">
+  <input type="button" value="+10" onClick="inc('drogue',1)">
+  <input type="button" value="+1" onClick="inc('drogue',0)">
+  </span>
+  <br>
+  <span>Main chute:
+  <input id="chute" type="text" value="123" size="3" maxlength="3" onClick="this.select();">
+  <input type="button" value="+100" onClick="inc('chute',2)">
+  <input type="button" value="+10" onClick="inc('chute',1)">
+  <input type="button" value="+1" onClick="inc('chute',0)">
+  </span>
+  <br>
+  <span>Landing:
+  <input id="landing" type="text" value="123" size="3" maxlength="3" onClick="this.select();">
+  <input type="button" value="+100" onClick="inc('landing',2)">
+  <input type="button" value="+10" onClick="inc('landing',1)">
+  <input type="button" value="+1" onClick="inc('landing',0)">
+  </span>
+</div>
+
+
+<h2>Rocket launch scheduler</h2>
+<!-- Setup button -->
+<span class="setupmenu" onclick="openNav()">&#9998;</span>
+<!-- <span class="setupmenu" onclick="openNav()"><input type="button" value="Setup"></span> -->
+<br>
+<br>
+<br>
+<!-- <p>Click on the element below to open the navigation menu.</p> -->
+<br>
+<div>
+  <span>Launch:
+  <input id="launchT" type="text" value="123" size="10" readonly>
+  </span>
+  <br>
+  <br>
+  <span>Motor Burnout:
+  <input id="burnoutT" type="text" value="123" size="10" readonly>
+  </span>
+  <br>
+  <br>
+  <span>Apogee:
+  <input id="apogeeT" type="text" value="123" size="10" readonly>
+  </span>
+  <br>
+  <br>
+  <span>Drogue chute:
+  <input id="drogueT" type="text" value="123" size="10" readonly>
+  </span>
+  <br>
+  <br>
+  <span>Main chute:
+  <input id="chuteT" type="text" value="123" size="10" readonly>
+  </span>
+  <br>
+  <br>
+  <span>Landing:
+  <input id="landingT" type="text" value="123" size="10" readonly>
+  </span>
+  <br>
+  <br>
+  <span onclick="flipLaunchTrigger()">
+  <input type="button" value="LiftOff">
+  </span>
+  <br>
+  <br>
+  <span>
+      <!-- <a href="data:text/plain;charset=UTF-8,the%20data:1234,5678"> -->
+      <a id="download" href="data:application/plain;charset=US-ASCII,a1=ligtoff" download="flytimelog.txt" onclick="generateDownload()">
+      <!-- <a href="data:text/plain;charset=US-ASCII,Zm9vIGJhcg==" download="flytimelog.txt"> -->
+          <input type="button" value="download">
+      </a>
+  </span>
+</div>
+</body>
+</html> 
