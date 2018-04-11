@@ -187,6 +187,7 @@ function readSettings(){
 function updateData(id,timedData){
     var j;
     var k;
+    var l;
     //var i=launchTime-globalTimeNow+burnOutTimeMS;
     var i=launchTime-globalTimeNow+timedData;
     if (i<0){
@@ -196,7 +197,13 @@ function updateData(id,timedData){
     } else {
         j=new Date(i);
         k=j.getSeconds()+Math.floor(j.getMilliseconds()/100)/10;
-        document.getElementById(id+"T").value=k.toString();
+        //console.log(k);
+        l=j.getMinutes();
+        if (l>0) {
+			document.getElementById(id+"T").value=l.toString()+":"+k.toString();
+		} else {
+			document.getElementById(id+"T").value=k.toString();
+		}
         document.getElementById(id+"T").style.backgroundColor="red";
     }
     if (id!="launch") {
@@ -240,13 +247,14 @@ function generateDownload(){
     var headData="data:application/plain;charset=US-ASCII,";
     var textData;
     
-    textData="Launch:" + document.getElementById("launchT").value+";";
-    textData+="Burnout:" + document.getElementById("burnoutT").value+";";
-    textData+="Apogee:" + document.getElementById("apogeeT").value+";";
-    textData+="Drogue:" + document.getElementById("drogueT").value+";";
-    textData+="Chute:" + document.getElementById("chuteT").value+";";
-    textData+="Landing:" + document.getElementById("landingT").value+";";
-    document.getElementById("download").href=headData+textData;
+    textData="Launch," + document.getElementById("launchT").value+";";
+    textData+="Burnout," + document.getElementById("burnoutT").value+";";
+    textData+="Apogee," + document.getElementById("apogeeT").value+";";
+    textData+="Drogue," + document.getElementById("drogueT").value+";";
+    textData+="Chute," + document.getElementById("chuteT").value+";";
+    textData+="Landing," + document.getElementById("landingT").value+";";
+    textData=textData.replace(/;/g,"\n");
+    document.getElementById("download").href=headData+encodeURIComponent(textData);
     var filename;
     var d=new Date();
     filename=d.getFullYear()+"-";
