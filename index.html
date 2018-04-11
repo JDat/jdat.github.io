@@ -196,7 +196,7 @@ function updateData(id,timedData){
     } else {
         j=new Date(i);
         k=j.getSeconds()+Math.floor(j.getMilliseconds()/100)/10;
-        document.getElementById(id+"T").value=k.toString();
+        document.getElementById(id+"T").value=j.getMinutes()+k.toString();
         document.getElementById(id+"T").style.backgroundColor="red";
     }
     if (id!="launch") {
