@@ -240,12 +240,12 @@ function generateDownload(){
     var headData="data:application/plain;charset=US-ASCII,";
     var textData;
     
-    textData="Launch," + document.getElementById("launchT").value+",";
-    textData+="Burnout," + document.getElementById("burnoutT").value+",";
-    textData+="Apogee," + document.getElementById("apogeeT").value+",";
-    textData+="Drogue," + document.getElementById("drogueT").value+",";
-    textData+="Chute," + document.getElementById("chuteT").value+",";
-    textData+="Landing," + document.getElementById("landingT").value+",";
+    textData="Launch," + document.getElementById("launchT").value+"\n";
+    textData+="Burnout," + document.getElementById("burnoutT").value+"\n";
+    textData+="Apogee," + document.getElementById("apogeeT").value+"\n";
+    textData+="Drogue," + document.getElementById("drogueT").value+"\n";
+    textData+="Chute," + document.getElementById("chuteT").value+"\n";
+    textData+="Landing," + document.getElementById("landingT").value+"\n";
     document.getElementById("download").href=headData+textData;
     var filename;
     var d=new Date();
