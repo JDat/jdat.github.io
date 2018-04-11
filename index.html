@@ -195,7 +195,7 @@ function updateData(id,timedData){
         document.getElementById(id+"T").style.backgroundColor="green";
     } else {
         j=new Date(i);
-        k=j.getSeconds()+Math.floor(j.getMilliseconds()/100)/10;
+        k=j.getSeconds()+Math.floor(j.getMilliseconds()/1000);
         document.getElementById(id+"T").value=k.toString();
         document.getElementById(id+"T").style.backgroundColor="red";
     }
