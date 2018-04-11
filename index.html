@@ -206,9 +206,9 @@ function updateData(id,timedData){
 		}
         document.getElementById(id+"T").style.backgroundColor="red";
     }
-    if (id!="launch") {
-        document.getElementById(id).value=Math.floor(timedData/1000);
-    }
+    //if (id!="launch") {
+    //    document.getElementById(id).value=Math.floor(timedData/1000);
+    //}
     if (!launchTrigger){
         document.getElementById(id+"T").style.backgroundColor="white";
     }
