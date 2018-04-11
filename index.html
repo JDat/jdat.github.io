@@ -158,26 +158,21 @@ function readSettings(){
             localStorage.setItem("apogee", 16000);
         }
         apogeeTimeMS=parseInt(localStorage.apogee);
-        //document.getElementById("apogee").value=localStorage.apogee;
         
         if (typeof(localStorage.drogue) == "undefined") {
             localStorage.setItem("drogue" , 18000);
         }
         drogueChuteTimeMS=parseInt(localStorage.drogue);
-        //document.getElementById("drogue").value=localStorage.drogue;
 
         if (typeof(localStorage.chute) == "undefined") {
             localStorage.setItem("chute" , 300);
         }
         mainChuteTimeMS=parseInt(localStorage.chute);
-        //document.getElementById("chute").value=localStorage.chute;
 
         if (typeof(localStorage.landing) == "undefined") {
             localStorage.setItem("landing" , 600);
         }
         landingTimeMS=parseInt(localStorage.landing);
-        //document.getElementById("landing").value=localStorage.landing;
-
         
     } else {
         console.log("browser does not support web storage...");
@@ -188,7 +183,6 @@ function updateData(id,timedData){
     var j;
     var k;
     var l;
-    //var i=launchTime-globalTimeNow+burnOutTimeMS;
     var i=launchTime-globalTimeNow+timedData;
     if (i<0){
         j=new Date(launchTime+timedData);
@@ -197,7 +191,6 @@ function updateData(id,timedData){
     } else {
         j=new Date(i);
         k=j.getSeconds()+Math.floor(j.getMilliseconds()/100)/10;
-        //console.log(k);
         l=j.getMinutes();
         if (l>0) {
 			document.getElementById(id+"T").value=l.toString()+":"+k.toString();
@@ -273,38 +266,38 @@ function generateDownload(){
 <div id="mySidenav" class="sidenav">
   <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
   <span>Motor Burnout:
-  <input id="burnout" type="text" value="123" size="3" maxlength="3" onClick="this.select();">
-  <input type="button" value="+100" onClick="inc('burnout',2)">
-  <input type="button" value="+10" onClick="inc('burnout',1)">
-  <input type="button" value="+1" onClick="inc('burnout',0)">
+	<input id="burnout" type="text" value="123" size="3" maxlength="3" onClick="this.select();">
+	<input type="button" value="+100" onClick="inc('burnout',2)">
+	<input type="button" value="+10" onClick="inc('burnout',1)">
+	<input type="button" value="+1" onClick="inc('burnout',0)">
   </span>
   <br>
   <span>Apogee:
-  <input id="apogee" type="text" value="123" size="3" maxlength="3" onClick="this.select();">
-  <input type="button" value="+100" onClick="inc('apogee',2)">
-  <input type="button" value="+10" onClick="inc('apogee',1)">
-  <input type="button" value="+1" onClick="inc('apogee',0)">
+	<input id="apogee" type="text" value="123" size="3" maxlength="3" onClick="this.select();">
+	<input type="button" value="+100" onClick="inc('apogee',2)">
+	<input type="button" value="+10" onClick="inc('apogee',1)">
+	<input type="button" value="+1" onClick="inc('apogee',0)">
   </span>
   <br>
   <span>Drogue chute:
-  <input id="drogue" type="text" value="123" size="3" maxlength="3" onClick="this.select();">
-  <input type="button" value="+100" onClick="inc('drogue',2)">
-  <input type="button" value="+10" onClick="inc('drogue',1)">
-  <input type="button" value="+1" onClick="inc('drogue',0)">
+	<input id="drogue" type="text" value="123" size="3" maxlength="3" onClick="this.select();">
+	<input type="button" value="+100" onClick="inc('drogue',2)">
+	<input type="button" value="+10" onClick="inc('drogue',1)">
+	<input type="button" value="+1" onClick="inc('drogue',0)">
   </span>
   <br>
   <span>Main chute:
-  <input id="chute" type="text" value="123" size="3" maxlength="3" onClick="this.select();">
-  <input type="button" value="+100" onClick="inc('chute',2)">
-  <input type="button" value="+10" onClick="inc('chute',1)">
-  <input type="button" value="+1" onClick="inc('chute',0)">
+	<input id="chute" type="text" value="123" size="3" maxlength="3" onClick="this.select();">
+	<input type="button" value="+100" onClick="inc('chute',2)">
+	<input type="button" value="+10" onClick="inc('chute',1)">
+	<input type="button" value="+1" onClick="inc('chute',0)">
   </span>
   <br>
   <span>Landing:
-  <input id="landing" type="text" value="123" size="3" maxlength="3" onClick="this.select();">
-  <input type="button" value="+100" onClick="inc('landing',2)">
-  <input type="button" value="+10" onClick="inc('landing',1)">
-  <input type="button" value="+1" onClick="inc('landing',0)">
+	<input id="landing" type="text" value="123" size="3" maxlength="3" onClick="this.select();">
+	<input type="button" value="+100" onClick="inc('landing',2)">
+	<input type="button" value="+10" onClick="inc('landing',1)">
+	<input type="button" value="+1" onClick="inc('landing',0)">
   </span>
 </div>
 
@@ -320,44 +313,42 @@ function generateDownload(){
 <br>
 <div>
   <span>Launch:
-  <input id="launchT" type="text" value="123" size="10" readonly>
+	<input id="launchT" type="text" value="123" size="10" readonly>
   </span>
   <br>
   <br>
   <span>Motor Burnout:
-  <input id="burnoutT" type="text" value="123" size="10" readonly>
+	<input id="burnoutT" type="text" value="123" size="10" readonly>
   </span>
   <br>
   <br>
   <span>Apogee:
-  <input id="apogeeT" type="text" value="123" size="10" readonly>
+	<input id="apogeeT" type="text" value="123" size="10" readonly>
   </span>
   <br>
   <br>
   <span>Drogue chute:
-  <input id="drogueT" type="text" value="123" size="10" readonly>
+	<input id="drogueT" type="text" value="123" size="10" readonly>
   </span>
   <br>
   <br>
   <span>Main chute:
-  <input id="chuteT" type="text" value="123" size="10" readonly>
+	<input id="chuteT" type="text" value="123" size="10" readonly>
   </span>
   <br>
   <br>
   <span>Landing:
-  <input id="landingT" type="text" value="123" size="10" readonly>
+	<input id="landingT" type="text" value="123" size="10" readonly>
   </span>
   <br>
   <br>
   <span onclick="flipLaunchTrigger()">
-  <input type="button" value="LiftOff">
+	<input type="button" value="LiftOff">
   </span>
   <br>
   <br>
   <span>
-      <!-- <a href="data:text/plain;charset=UTF-8,the%20data:1234,5678"> -->
       <a id="download" href="data:application/plain;charset=US-ASCII,a1=ligtoff" download="flytimelog.txt" onclick="generateDownload()">
-      <!-- <a href="data:text/plain;charset=US-ASCII,Zm9vIGJhcg==" download="flytimelog.txt"> -->
           <input type="button" value="download">
       </a>
   </span>
