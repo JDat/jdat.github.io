@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+        <title>audioplayer</title>
+        <script src='web-audio-peak-meter.min.js'></script>
+        <script>
+            // todo:
+            // disable unassigned
+            // display remaining time and selected audio
+            // check for media on loading
+            // better config
+
+            const configStr = [];
+            configStr[0] = "empty";
+            configStr[1] = "01.wav";
+            configStr[2] = "02.wav";
+            configStr[3] = "03.wav";
+            
+            var audioElement;
+            var selectedAudio;
+
+            function init() {
+                audioElement = document.getElementById('audioelement');
+                createButtons();
+                colorizeLoop();
+                setInterval('onTimer()', 40);
+                initAudioMeter();
+            }
+            
+            function onTimer() {
+                setButtonVisuals();
+                setDisplay();
+            }
+            
+            function playAud(i) {
+                selectedAudio = i;
+                playCurrentAud();
+            }
+
+            function playCurrentAud() {
+                stopAud();
+                audioElement.src=configStr[selectedAudio];
+                audioElement.load();
+                audioElement.play();
+            }
+            
+            function stopAud() {
+                audioElement.pause();
+                audioElement.currentTime=0;
+                
+            }
+            
+            function loopAud() {
+                if ( audioElement.loop ) {
+                    audioElement.loop = false;
+                } else {
+                    audioElement.loop = true;
+                }
+                colorizeLoop();
+            }
+            
+            function colorizeLoop() {
+                loopId = document.getElementById('loopButton');
+                if ( audioElement.loop ) {
+                    loopId.style.background = 'red';
+                } else {
+                    loopId.style.background = 'white';
+                }
+            }
+            
+            function createButtons() {
+                var buttonDiv=document.getElementById('buttons');
+                for (j=0; j<5; j++) {
+                    buttonDiv.insertAdjacentHTML('beforeend', '<br><br>');
+                    for (i=1; i<=10; i++) {
+                        //insertString '<button id="btn1" onclick="playAud(1)" type="button">01</button>'
+                        insertString='<button id="btn';
+                        insertString += j*10+i;
+                        insertString += '" onclick="playAud(';
+                        insertString += j*10+i;
+                        insertString +=')" type="button">'
+                        if (j == 0 && i< 10) {
+                            insertString += "0";
+                        }
+                        insertString += j*10+i;
+                        insertString +='</button>';
+                        buttonDiv.insertAdjacentHTML('beforeend', insertString);
+                    }
+                }
+            }
+            
+            function setButtonVisuals() {
+                //console.log(document.getElementById('buttons'));
+                for ( i = 1; i<51; i++) {
+                    btn = document.getElementById('btn'+i);
+                    if ( i == selectedAudio ) {
+                        btn.style.background = 'red';
+                    } else {
+                        btn.style.background = 'white';
+                    }
+                }
+            }
+            
+            function setDisplay() {
+                document.getElementById('topLeftLine').value = "Name: " + configStr[selectedAudio];
+                var a = audioElement.duration;
+                var seconds = Math.round(a);
+                var minutes = Math.trunc(a/60);
+                var tvFrames=Math.round( ((a-seconds)/(1/25)) );
+                var remain = audioElement.duration - audioElement.currentTime;
+                remain = remain.toFixed(2);
+                document.getElementById('bottomLeftLine').value = "Len: " + minutes + ":" + seconds + "." + tvFrames;
+                document.getElementById('bottomRightLine').value = "Remain: " + remain;
+            }
+            
+            function initAudioMeter() {
+                var myMeterElement = document.getElementById('my-peak-meter');
+                var myAudio = document.getElementById('audioelement');
+                var audioCtx = new window.AudioContext();
+                //var audioCtx = new window.AudioContext(window.AudioContext || window.webkitAudioContext);
+                var sourceNode = audioCtx.createMediaElementSource(myAudio);
+                sourceNode.connect(audioCtx.destination);
+                var meterNode = webAudioPeakMeter.createMeterNode(sourceNode, audioCtx);
+                webAudioPeakMeter.createMeter(myMeterElement, meterNode, {});
+                myAudio.addEventListener('play', function() {
+                        audioCtx.resume();
+                    });
+            }
+        </script> 
+    </head>
+    <body onLoad='init()'>
+        <table>
+            <tr>
+                <!-- <audio id='audioelement' controls preload> -->
+                <audio id='audioelement' preload>
+                    <!-- <source src='0.wav' type='audio/wav'> -->
+                </audio>
+                <br><br>
+                <fieldset style='width: 500px;'>
+                    <legend>DISPLAY</legend>
+                    <output id='topLeftLine' style='text-align: left;'>topLeftLine</output>
+                    <output id='topRightLine' style='text-align: right;'>topRightLine</output>
+                    <br>
+                    <output id='bottomLeftLine' style='text-align: left;'>bottomLeftLine</output>
+                    <output id='bottomRightLine' style='text-align: right;'>bottomRightLine</output>
+                </fieldset>
+            </tr>
+            <tr>
+                <table>
+                    <td>
+                        <button onclick='stopAud()' type='button'>STOP</button>
+                        <button onclick='playCurrentAud()' type='button'>PLAY</button>
+                        <button id='loopButton' onclick='loopAud()' type='button'>LOOP</button>
+                        <br><br>
+                        <div id="buttons">
+                            <!-- all buttons goes there -->
+                        </div>
+                    </td>
+                    <td>
+                        <div id="my-peak-meter" style="width: 5em; height: 20em; margin: 1em 0;">
+                        </div>
+                    </td>
+                </table>
+            </tr>
+        </table>
+    </body>
+</html>
