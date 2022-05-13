@@ -132,11 +132,45 @@
         map.on('locationerror', onLocationError);
         map.locate({watch: true, enableHighAccuracy: true, maximumAge: 10000});
 
-        fetchListeners(function(name, loc) {
-            let marker = L.circleMarker([loc.lat, loc.lon], { radius: 6, fillColor: '#008000', fillOpacity: 0.6, color: '#000000', weight: 1 });
-            marker.bindTooltip(name);
-            marker.addTo(map);
-        });
+        var listeners = [];
+        
+        fetchListeners();
+        
+        function addListeners(name, loc, mobile) {
+
+            var marker;
+            let myIcon = L.icon({
+                //iconUrl: 'car-blue.png',
+                iconUrl: 'car.png',
+                iconSize: [16,20],
+                //iconAnchor: [27.22],
+            });
+
+            var found = -1;
+            for (key in listeners) {
+                if (listeners[key].name === name) {
+                    found = key;
+                    break;
+                }
+            }
+            if (found >= 0) {
+                //console.log('arr.loc', listeners[found].loc, 'indata', loc);
+                marker = listeners[found].marker;
+                listeners[found].loc.lat = loc.lat;
+                listeners[found].loc.lon = loc.lon;
+                marker.setLatLng([listeners[found].loc.lat, listeners[found].loc.lon]);
+            } else {
+                if (mobile === true ) {
+                    marker = L.marker([loc.lat, loc.lon], {icon: myIcon});
+                } else {
+                    marker = L.circleMarker([loc.lat, loc.lon], {radius: 6, fillColor: '#008000', fillOpacity: 0.6, color: '#000000', weight: 1 });
+                }
+                marker.bindTooltip(name);
+                marker.addTo(map);
+                listeners.push({name: name, loc: loc, marker: marker});
+            }
+
+        };
 
         fetchSites(function(name, loc) {
             let marker = L.circleMarker([loc.lat, loc.lon], { radius: 7, fill: false, color: '#000000', weight: 3 });

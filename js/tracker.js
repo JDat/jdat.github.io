@@ -1,22 +1,26 @@
-function fetchListeners(addListener) {
+function fetchListeners() {
   fetch('https://api.v2.sondehub.org/listeners/telemetry?duration=1d')
     .then(response => response.json())
     .then(function (result) {
       let numAdded = 0;
+      //console.log(Object.keys(result));
       for (const key in result) {
-        const subkey = Object.keys(result[key])[0];
+        const last = Object.keys(result[key]).length - 1;
+        const subkey = Object.keys(result[key])[last];
         const entry = result[key][subkey];
         const callsign = entry['uploader_callsign'];
+        const mobile = entry['mobile'];
         if ('uploader_position' in entry) {
           const loc = { lat: entry['uploader_position'][0], lon: entry['uploader_position'][1] };
           if (inRange(loc)) {
-            addListener(callsign, loc);
+            addListeners(callsign, loc, mobile);
             numAdded++;
           }
         }
       }
-      console.log('Added ' + numAdded + ' listeners')
+      //console.log('Added ' + numAdded + ' listeners');
     });
+    setTimeout(fetchListeners, 30 * 1000);
 }
 
 function fetchSites(addSite) {
@@ -168,8 +172,8 @@ function startLiveTracker(sondeList, ui) {
     // client.subscribe("sondes/" + sondeID);
   }
 
-  function onConnectionLost(errorCode, errorMessage) {
-    console.log(errorMessage);
+  function onConnectionLost(error) {
+    console.log(error);
   }
 
   // called when a message arrives

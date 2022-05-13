@@ -1,5 +1,7 @@
 let chaseDebug = true;
 
+const chaseUploadInterval = 15;            // in seconds
+
 if (chaseDebug) {
     var fakeCorrds = [57.00, 25.00];
 }
@@ -61,7 +63,6 @@ function loadChaseParameters() {
     document.cookie = "chaseDataAntenna=" + chaseData.antenna + ";" + expires + ";path=/;SameSite=None; Secure";
     document.cookie = "chaseDataEmail=" + chaseData.email + ";" + expires + ";path=/;SameSite=None; Secure";
     
-    const chaseUploadInterval = 15;            // in seconds
     setInterval( doSomethingWithChasePOST, chaseUploadInterval * 1000);
 }
 
