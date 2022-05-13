@@ -52,13 +52,14 @@ function fetchSondes(ui, mapRadiusKm) {
           let marker = ui.addSonde(entry);
           sondeList[key] = { marker: marker, data: entry };
 
-          // Launch a regular updater
+          ui.updateSonde(sondeList[key].marker, sondeList[key].data);
+          // Launch a regular popup content updater
           setInterval(function() {
             ui.updateSonde(sondeList[key].marker, sondeList[key].data);
-          }, 1000);
+          }, 60*1000);
 
           // Fetch prediction data after small random time
-          const timeoutMillis = 200 + Math.floor(Math.random() * 800);
+          const timeoutMillis = 500 + Math.floor(Math.random() * 2000);
           setTimeout(function() {
             getPrediction(key, sondeList, ui);
           }, timeoutMillis);
@@ -70,7 +71,7 @@ function fetchSondes(ui, mapRadiusKm) {
 
       for (const key in sondeList) {
         // Schedule downloading of archived flight data after some random time not to annoy the server
-        const timeoutMillis = 500 + Math.floor(Math.random() * 1500);
+        const timeoutMillis = 2500 + Math.floor(Math.random() * 6500);
         setTimeout(function() {
           fetch('https://api.v2.sondehub.org/sonde/' + key).then(function (response) {
             response.json().then(function (result) {
@@ -85,7 +86,7 @@ function fetchSondes(ui, mapRadiusKm) {
               }
               console.log('Loaded ' + polyline.length + ' path points for sonde ' + key);
 
-              let path = ui.addPath(polyline, 'archived');
+              let path = ui.addPath(polyline, 'archived', key);
               sondeList[key].path = path;
             })
           })}, timeoutMillis);
@@ -136,7 +137,7 @@ function decodeFrame(sondeList, data, ui) {
       if (inRange(loc)) {
         console.log('Live: Found new sonde ' + sondeID + ' in range');
         let marker = ui.addSonde(data);
-        let path = ui.addPath([loc], 'live');
+        let path = ui.addPath([loc], 'live', sondeID);
         sondeList[sondeID] = { marker: marker, path: path, data: data };
         // Launch a regular updater
         setInterval(function() {
@@ -188,152 +189,39 @@ function getPrediction(sondeID, sondeList, ui)
 {
   // Add timestamp so we know later how old the prediction is
   sondeList[sondeID].lastPredictTime = Date.now();
-  console.log('Checking prediction for ' + sondeID);
+  console.log('Requesting prediction for ' + sondeID);
 
   fetch('https://api.v2.sondehub.org/predictions?vehicles=' + sondeID).then(function (response) {
     response.json().then(function (result) {
       if (result.length > 0) {
         const pathData = JSON.parse(result[0].data);
+
+        sondeList[sondeID].pred_landing = {
+          serial: result[0].vehicle,
+          loc: pathData[pathData.length - 1],
+          time: new Date(result[0].time),
+          ascent_rate: result[0].ascent_rate,
+          descent_rate: result[0].descent_rate,
+        };
+
         let polyline = [];
         for (let index = 0; index < pathData.length; index++) {
           const entry = pathData[index];
-          polyline.push({lat: entry['lat'], lon: entry['lon']});
+          polyline.push({lat: entry.lat, lon: entry.lon});
         }
         // console.log('Adding ' + polyline.length + ' predicted path points for sonde ' + sondeID);
 
+        // Check if predicted path has already been added previously, if not, add it
         if (sondeList[sondeID].predictedPath == null) {
-          let path = ui.addPath(polyline, 'predict');
+          let path = ui.addPath(polyline, 'predict', sondeList[sondeID].data);
           sondeList[sondeID].predictedPath = path;
+          ui.updatePath(path, polyline, sondeList[sondeID].data, sondeList[sondeID].pred_landing);
         }
         else {
           let path = sondeList[sondeID].predictedPath;
-          ui.updatePath(path, polyline);
+          ui.updatePath(path, polyline, sondeList[sondeID].data, sondeList[sondeID].pred_landing);
         }
       }
     })
   });
-}
-
-/*!
- * JavaScript function to calculate the geodetic distance between two points specified by latitude/longitude using the Vincenty inverse formula for ellipsoids.
- *
- * Original scripts by Chris Veness
- * Taken from http://movable-type.co.uk/scripts/latlong-vincenty.html and optimized / cleaned up by Mathias Bynens <http://mathiasbynens.be/>
- * Based on the Vincenty direct formula by T. Vincenty, “Direct and Inverse Solutions of Geodesics on the Ellipsoid with application of nested equations”, Survey Review, vol XXII no 176, 1975 <http://www.ngs.noaa.gov/PUBS_LIB/inverse.pdf>
- *
- * @param   {Number} lat1, lon1: first point in decimal degrees
- * @param   {Number} lat2, lon2: second point in decimal degrees
- * @returns {Number} distance in metres between points
- */
-function toRad(n) {
- return n * Math.PI / 180;
-};
-
-function distVincenty(lat1, lon1, lat2, lon2) {
-  let a = 6378137,
-    b = 6356752.3142,
-    f = 1 / 298.257223563, // WGS-84 ellipsoid params
-    L = toRad(lon2-lon1),
-    U1 = Math.atan((1 - f) * Math.tan(toRad(lat1))),
-    U2 = Math.atan((1 - f) * Math.tan(toRad(lat2))),
-    sinU1 = Math.sin(U1),
-    cosU1 = Math.cos(U1),
-    sinU2 = Math.sin(U2),
-    cosU2 = Math.cos(U2),
-    lambda = L,
-    lambdaP,
-    iterLimit = 100;
-
-  do {
-    let sinLambda = Math.sin(lambda),
-      cosLambda = Math.cos(lambda),
-      sinSigma = Math.sqrt((cosU2 * sinLambda) * (cosU2 * sinLambda) + (cosU1 * sinU2 - sinU1 * cosU2 * cosLambda) * (cosU1 * sinU2 - sinU1 * cosU2 * cosLambda));
-    
-    if (0 === sinSigma) {
-      return 0; // co-incident points
-    };
-
-    let cosSigma = sinU1 * sinU2 + cosU1 * cosU2 * cosLambda,
-      sigma = Math.atan2(sinSigma, cosSigma),
-      sinAlpha = cosU1 * cosU2 * sinLambda / sinSigma,
-      cosSqAlpha = 1 - sinAlpha * sinAlpha,
-      cos2SigmaM = cosSigma - 2 * sinU1 * sinU2 / cosSqAlpha,
-      C = f / 16 * cosSqAlpha * (4 + f * (4 - 3 * cosSqAlpha));
-
-    if (isNaN(cos2SigmaM)) {
-      cos2SigmaM = 0; // equatorial line: cosSqAlpha = 0 (§6)
-    };
-    
-    lambdaP = lambda;
-    lambda = L + (1 - C) * f * sinAlpha * (sigma + C * sinSigma * (cos2SigmaM + C * cosSigma * (-1 + 2 * cos2SigmaM * cos2SigmaM)));
-  } while (Math.abs(lambda - lambdaP) > 1e-12 && --iterLimit > 0);
-
-  if (!iterLimit) {
-    return NaN; // formula failed to converge
-  };
-
-  let uSq = cosSqAlpha * (a * a - b * b) / (b * b),
-    A = 1 + uSq / 16384 * (4096 + uSq * (-768 + uSq * (320 - 175 * uSq))),
-    B = uSq / 1024 * (256 + uSq * (-128 + uSq * (74 - 47 * uSq))),
-    deltaSigma = B * sinSigma * (cos2SigmaM + B / 4 * (cosSigma * (-1 + 2 * cos2SigmaM * cos2SigmaM) - B / 6 * cos2SigmaM * (-3 + 4 * sinSigma * sinSigma) * (-3 + 4 * cos2SigmaM * cos2SigmaM))),
-    s = b * A * (sigma - deltaSigma);
-
-  return s.toFixed(3); // round to 1mm precision
-}
-/*!
- * JavaScript function to calculate bearing from lat1/lon1 to lat2/lon2
- *
- * Original scripts by Chris Veness.
- * Taken from http://movable-type.co.uk/scripts/latlong-vincenty.html and optimized / cleaned up by Mathias Bynens <http://mathiasbynens.be/>
- * Maybe... Don't remember
- *
- * @param   {Number} lat1, lon1: first point in decimal degrees
- * @param   {Number} lat2, lon2: second point in decimal degrees
- * @returns {Number} bering in degrees
- */
-function calcBearing(lat1, lon1, lat2, lon2) {
-  let x, y, brng
-  y = Math.sin(lon2-lon1) * Math.cos(lat2);
-  x = Math.cos(lat1)*Math.sin(lat2) - Math.sin(lat1)*Math.cos(lat2)*Math.cos(lon2-lon1);
-  brng = Math.atan2(y, x);
-  brng = (brng*180/Math.PI + 360) % 360; // in degrees
-  return brng;
-}
-
-/*!
- * JavaScript function to send chase can position
- *
- * Original examples  from google/interner.
- *
- * @param   {Number} lat1, lon1: chase car location in decimal degrees
- * @param   {Number} alt: chase car altitude in meters
- * @param   {String} callsign, antenna, email: Additional info
- * @returns Nothing to return yet
- */
-
-function doChaseUpload(lat, lon, alt, callsign, antenna, email){
-    let url = "https://api.v2.sondehub.org/listeners";
-
-    let data = `{"software_name": "kgChase",
-        "software_version": "0.0.1",
-        "uploader_callsign": "` + callsign + `",
-        "uploader_position": [` + lat +`, ` + lon + `, ` + alt + `],
-        "uploader_antenna": "` + antenna + `",
-        "uploader_contact_email": "` + email + `",
-        "mobile": true
-    }`;
-
-    let xhr = new XMLHttpRequest();
-
-    xhr.onreadystatechange = function () {
-       if (xhr.readyState === 4) {
-          //console.log(myxhr.status);
-          //console.log(myxhr.statusText);
-          console.log(myxhr.responseText.toString());
-       }};
-
-
-    xhr.open("PUT", url);
-    xhr.setRequestHeader("Content-Type", "application/json");
-    xhr.send(data);
 }

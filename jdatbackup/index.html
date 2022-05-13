@@ -1,27 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <title>Meteosonde tracker by YL3JG</title>
 
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <link rel="shortcut icon" type="image/x-icon" href="radiosonde.png" />
-
+    <!-- <link rel="shortcut icon" type="image/x-icon" href="docs/images/favicon.ico" /> -->
+    <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.8.0/dist/leaflet.css" integrity="sha512-hoalWLoI8r4UszCkZ5kL8vayOGVae1oxXe/2A4AO6J9+580uKHDO3JdHb7NzwwzK5xr/Fs0W40kiNHxM9vyTtQ==" crossorigin="" />
     <script src="https://unpkg.com/leaflet@1.8.0/dist/leaflet.js" integrity="sha512-BB3hKbKWOc9Ez/TAwyWxNXeoV9c1v6FIeYiBieIWkpLjauysF18NzgR1MBNBXf8/KABdlkX68nAhlwcDFLGPCQ==" crossorigin=""></script>
     <script src="js/paho-mqtt-min.js" type="text/javascript"></script>
 
     <style>
         html, body {
-            height: 100%;
-            margin: 0;
+        height: 100%;
+        margin: 0;
         }
         .leaflet-container {
-            height: 400px;
-            width: 600px;
-            max-width: 100%;
-            max-height: 100%;
+        height: 400px;
+        width: 600px;
+        max-width: 100%;
+        max-height: 100%;
         }
     </style>
 
@@ -31,37 +33,24 @@
 <body>
     <div id='map'></div>
     <script src="js/tracker.js" type="text/javascript"></script>
-    <script src="js/chasecar.js" type="text/javascript"></script>
     <script>
         const mapCenter = [57.00, 24.00];
         const mapRadiusKm = 500;
-        const deg2rad = Math.PI/180;
-        const rad2deg = 180/Math.PI;
 
         // For teleporting to active site (debugging)
         //const mapCenter = [35.00, -115.00];
         //const mapRadiusKm = 1500;
 
-        const sondeMaxAge = 3600;                  // maximum sonde age in seconds
-        const sondeColorAscent  = '#FFFF44DD';     // If sonde ascending - blue
-        const sondeColorDescent  = '#FF4400DD';    // If sonde descending - red
-        const sondeColorAged  = '#0088FFAA';       // If no data for sondeAgeMs miliseconds - yellow
+        const chaseUploadInterval = 15;           // in seconds
+
+        const sondeMaxAge = 3 * 60 * 60;         // 3 hours in seconds
+        const sondeColorAscent  = '#0066FF';     // If sonde ascending - blue
+        const sondeColorDescent  = '#FF0000';    // If sonde descending - red
+        const sondeColorAged  = '#FFFF00';       // If no data for sondeAgeMs miliseconds - yellow
 
         function inRange(point) {
+            // return (Math.abs(point[0] - mapCenter[1]) < 20) && (Math.abs(point[1] - mapCenter[0]) < 14);
             return map.distance(mapCenter, [point.lat, point.lon]) < (mapRadiusKm * 1000);
-        }
-
-        function getBearing(lat1, lon1, lat2, lon2) {
-            let x, y, brng;
-            lon1 = lon1 * deg2rad;
-            lon2 = lon2 * deg2rad;
-            lat1 = lat1 * deg2rad;
-            lat2 = lat2 * deg2rad;
-            y = Math.sin(lon2 - lon1) * Math.cos(lat2);
-            x = Math.cos(lat1)*Math.sin(lat2) - Math.sin(lat1)*Math.cos(lat2)*Math.cos(lon2-lon1);
-            brng = Math.atan2(y, x);
-            brng = (brng*180/Math.PI + 360) % 360; // in degrees
-            return brng;
         }
 
         let osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -97,40 +86,107 @@
         // Add range circle to the map
         L.circle(mapCenter, mapRadiusKm*1000, {fill: false}).addTo(map);
 
-        // Add my location marker
-        let myCircleAccuracy = L.circle(mapCenter, {radius: 1200, color: '#FF00FF'}).addTo(map);
-        let myCirclePos = L.circleMarker(mapCenter, {radius: 6, fill: false, color: '#FF00FF', weight: 3}).addTo(map);
-        let myPos = null;
-
         // Add scale control to the map
-        L.control.scale({position: 'topright'}).addTo(map);
+        L.control.scale().addTo(map);
 
         map.setView(mapCenter, 6);
 
         // Move the default location of zoom control
         map.zoomControl.setPosition('bottomright');
 
-        // var predLandingIcon = L.icon({
-        //     iconUrl: 'png/path4138.png',
-        //     iconSize: [12, 12],
-        //     // iconAnchor: [12, 12],
-        // });
+        let myCircleAccuracy = L.circle(mapCenter, {radius: 1200, color: '#FF00FF'});
+        myCircleAccuracy.addTo(map);
+        let myCirclePos = L.circleMarker(mapCenter, { radius: 6, fill: false, color: '#FF00FF', weight: 3 });
+        myCirclePos.addTo(map);
+
+        let lastChaseUpload = Date.now();
+        let message = 'Send your location to server?\nChase car mode.';
+        let chaseMode = window.confirm(message);
+        let chaseData = {
+            callSign : '',
+            antenna : '',
+            email : ''
+        };
+
+        if (chaseMode) loadChaseParameters();
+
+        function getCookie(cname) {
+            let name = cname + '=';
+            let decodedCookie = decodeURIComponent(document.cookie);
+            //console.log(document.cookie);
+            let ca = decodedCookie.split(";");
+            for(let i = 0; i <ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) == ' ') {
+                    c = c.substring(1);
+                }
+                if (c.indexOf(name) == 0) {
+                    return c.substring(name.length, c.length);
+                }
+            }
+            return "";
+        }
+
+        function loadChaseParameters() {
+            if (getCookie("chaseDataCallSign") != "") {
+                chaseData.callSign = getCookie("chaseDataCallSign");
+            } else {
+                chaseData.callSign = "Voldemort";
+            }
+            chaseData.callSign = prompt("Enter callsign:", chaseData.callSign);
+
+            if (getCookie("chaseDataAntenna") != "") {
+                chaseData.antenna = getCookie("chaseDataAntenna");
+            } else {
+                chaseData.antenna = "Portable 1/4 monopole";
+            }
+            chaseData.antenna = prompt("Enter Antenna name:", chaseData.antenna);
+
+            if (getCookie("chaseDataEmail") != "") {
+                chaseData.email = getCookie("chaseDataEmail");
+            } else {
+                chaseData.email = "none@none.org";
+            }
+            chaseData.email = prompt("Enter your email.\n Need if sondehub.org admins have questions.", chaseData.email);
+
+            const d = new Date();
+            d.setTime(d.getTime() + (10*365*24*60*60*1000));    // 10 years
+            let expires = 'expires='+ d.toUTCString();
+
+            document.cookie = "chaseDataCallSign=" + chaseData.callSign + ";" + expires + ";path=/;SameSite=None; Secure";
+            document.cookie = "chaseDataAntenna=" + chaseData.antenna + ";" + expires + ";path=/;SameSite=None; Secure";
+            document.cookie = "chaseDataEmail=" + chaseData.email + ";" + expires + ";path=/;SameSite=None; Secure";
+        }
 
         function onLocationFound(e) {
+
             let radius = e.accuracy / 2;
             myCircleAccuracy.setLatLng(e.latlng);
             myCircleAccuracy.setRadius(radius);
             myCirclePos.setLatLng(e.latlng);
-            myPos = e.latlng;
+
+            // L.circle(e.latlng, {radius: radius, color: '#FF00FF'}).addTo(map);
+            // L.circleMarker(e.latlng, { radius: 6, fill: false, color: '#FF00FF', weight: 3 }).addTo(map);
+            // let locationMarker = L.marker(e.latlng).addTo(map);
+            //     .bindPopup('You are within ' + radius + ' meters from this point').openPopup();
+            if (chaseMode) {
+                if ( lastChaseUpload + (chaseUploadInterval * 1000) <  Date.now() ) {
+                    lastChaseUpload = Date.now();
+                    let altitude = isNaN(e.altitude) ? 0 : e.altitude;
+                    doChaseUpload(e.latlng.latitude, e.latlng.longitude, altitude, chaseData.callSign, chaseData.antenna, chaseData.email);
+                }
+            }
         }
 
         function onLocationError(e) {
+            //alert(e.message);
             console.log(e.message);
         }
 
         map.on('locationfound', onLocationFound);
         map.on('locationerror', onLocationError);
-        map.locate({watch: true, enableHighAccuracy: true, maximumAge: 10000});
+
+        map.locate({watch: true, enableHighAccuracy: true, maximumAge: 10000, setView: false, maxZoom: 8});
 
         fetchListeners(function(name, loc) {
             let marker = L.circleMarker([loc.lat, loc.lon], { radius: 6, fillColor: '#008000', fillOpacity: 0.6, color: '#000000', weight: 1 });
@@ -138,15 +194,21 @@
             marker.addTo(map);
         });
 
-        fetchSites(function(name, loc) {
-            let marker = L.circleMarker([loc.lat, loc.lon], { radius: 7, fill: false, color: '#000000', weight: 3 });
+        fetchSites(function(name, loc, entry) {
+            //console.log(entry);
+            let marker = L.circleMarker([loc.lat, loc.lon], { radius: 7, fillColor: '#FFFFFF', fillOpacity: 0.1, color: '#000000', weight: 3 });
+            let content = name;
+            content +='<br/>';
+            //content += '<input type="button" value="Get predict" onClick="console.log(\'Long predict\');">';
+            content += '<input type="button" value="Get predict" onClick="getSitePredictions(' + entry.station + ');">';
+            //console.log(entry);
+            marker.bindPopup(content);
             marker.bindTooltip(name);
             marker.addTo(map);
         });
-
-        const ui = {
+        
+        let ui = {
             addSonde: function(data) {
-                // Called when a new sonde is discovered - should add it to the map as a graphical object (marker) and return some handle
                 let marker = L.circleMarker([data.lat, data.lon], { radius: 9, fillColor: '#FF0000', fillOpacity: 0.6, color: '#000000', weight: 1 });
                 marker.setStyle({fillColor: sondeColorAged});
                 marker.addTo(map);
@@ -154,14 +216,13 @@
                 return marker;
             },
             updateSonde: function(marker, data) {
-                // Called when a new data packet is received for a sonde - should reposition the graphical object (marker) and update the popup content
                 marker.setLatLng([data.lat, data.lon]);
                 let content = '<b>';
                 content += '<a href="#"  onClick="navigator.clipboard.writeText(\'' + data.serial + '\');">';
                 content += data.serial;
                 content += '</a>';
                 content += '</b> | ';
-                
+
                 if (data.subtype != null) {
                     content += data.subtype;
                 }
@@ -182,30 +243,15 @@
                     content += '---';
                 }
                 content += 'm/s';
-                if (myPos != null) {
-                    let distStr;
-                    let distance = map.distance(myPos, data);
-                    if (distance > 2000) {
-                        distStr = (distance / 1000).toFixed(1) + 'km';
-                    }
-                    else {
-                        distStr = distance.toFixed(0) + 'm';
-                    }
-                    content += '<br/>Distance: ' + distStr;
-                    let bearing = getBearing(myPos.lat, myPos.lng, data.lat, data.lon);
-                    content += ' | Bearing: ' + bearing.toFixed(0) + '\u00B0';
-                }
-
                 content += '<br/>RX: ';
                 if (data.frequency != null) {
                     content += data.frequency.toFixed(2) + 'MHz | ';
                 }
                 const lastRXDate = new Date(data.time_received);
-                // content += lastRXDate.getHours() + ':' + lastRXDate.getMinutes() + ':' + lastRXDate.getSeconds() + ' | ';
                 content += lastRXDate.toLocaleTimeString() + ' | ';
                 const ageSeconds = (Date.now() - lastRXDate) / 1000;
                 if (ageSeconds < 60) {
-                    content += '<1min';
+                    content += ageSeconds.toFixed(0) + 's';
                 }
                 else if (ageSeconds < 3600) {
                     const ageMinutes = ageSeconds / 60;
@@ -237,76 +283,53 @@
                         content += ' (' + data.snr.toFixed(0) + 'dB)';
                     }
                 }
+                let latlon = data.lat.toFixed(5) + ' ' + data.lon.toFixed(5);
                 content += '<br/>';
-                content += '<a href="#"  onClick="navigator.clipboard.writeText(\''
-                content += data.lat.toFixed(5) + ' ' + data.lon.toFixed(5);
-                 content += '\');">';
+                content += '<a href="#"  onClick="navigator.clipboard.writeText(\'' + latlon + '\');">';
                 content += data.lat.toFixed(5) + ' ' + data.lon.toFixed(5);
                 content += '</a>';
                 marker.bindPopup(content);
+                // marker.setPopupContent(loc.alt.toFixed(0) + 'm');
+                // marker.setTooltipContent(loc.alt.toFixed(0) + 'm');
             },
-            addPath: function(pointList, pathType, data) {
-                let styleOptions = null;
+            addPath: function(pointList, pathType) {
+                let styleOptions = {color: '#FF0000', opacity: 0.6};
                 if (pathType == 'predict') {
                     styleOptions = {color: '#CC4444', opacity: 0.4};
-                } else {
-                    styleOptions = {color: '#FF0000', opacity: 0.6};
                 }
-                // let path = L.polyline(pointList.map(x => [x.lat, x.lon]), styleOptions);
-                let path = L.polyline(pointList, styleOptions);
+                if (pathType == 'sitePredict') {
+                    styleOptions = {color: '#4444CC', opacity: 0.4};
+                }
+
+                let path = L.polyline(pointList.map(x => [x.lat, x.lon]), styleOptions)
                 path.addTo(map);
                 if (pathType == 'predict') {
                     const lastPoint = pointList[pointList.length - 1];
-                    // let marker = L.marker([lastPoint.lat, lastPoint.lon], {icon: predLandingIcon});
-                    let marker = L.circleMarker([lastPoint.lat, lastPoint.lon], { radius: 5, fill: true, color: '#000000CC', fillColor: '#000000DD', weight: 1 });
+                    let marker = L.circleMarker([lastPoint.lat, lastPoint.lon], { radius: 9, fillColor: '#FF0000', fillOpacity: 0.1, color: '#000000', opacity: 0.4, weight: 2 });
                     marker.addTo(map);
 
-                    let content = lastPoint.lat.toFixed(5) + ' ' + lastPoint.lon.toFixed(5);
+                    let latlon = lastPoint.lat.toFixed(5) + ' ' + lastPoint.lon.toFixed(5);
+                    let content = '<a href="#"  onClick="navigator.clipboard.writeText(\'' + latlon + '\');">';
+                    content += latlon;
+                    content += '</a>';
                     marker.bindPopup(content);
 
                     return { path: path, marker: marker };
                 }
                 return path;
             },
-            extendPath: function(handle, loc) {
-                handle.addLatLng([loc.lat, loc.lon]);
+            extendPath: function(path, loc) {
+                path.addLatLng([loc.lat, loc.lon]);
             },
-            updatePath: function(handle, pointList, data, pred_landing) {
-                handle.path.setLatLngs(pointList);
+            updatePath: function(path, pointList) {
+                path.path.setLatLngs(pointList);
                 const lastPoint = pointList[pointList.length - 1];
-                handle.marker.setLatLng([lastPoint.lat, lastPoint.lon]);
-
-                const geoURI = '#' + lastPoint.lat.toFixed(5) + ',' + lastPoint.lon.toFixed(5);
-                const linkText = lastPoint.lat.toFixed(5) + ', ' + lastPoint.lon.toFixed(5);
-                let content = '<b>' + data.serial + '</b> landing prediction';
-                content += '<br/>';
-                content += '<a href="#"  onClick="navigator.clipboard.writeText(\'';
-                content += lastPoint.lat.toFixed(5) + ' ' + lastPoint.lon.toFixed(5);
-                content += '\');">';
-                content += lastPoint.lat.toFixed(5) + ' ' + lastPoint.lon.toFixed(5);
+                path.marker.setLatLng([lastPoint.lat, lastPoint.lon]);
+                let latlon = lastPoint.lat.toFixed(5) + ' ' + lastPoint.lon.toFixed(5);
+                let content = '<a href="#"  onClick="navigator.clipboard.writeText(\'' + latlon + '\');">';
+                content += latlon;
                 content += '</a>';
-                if (pred_landing != null) {
-                    let land_time = new Date(0);
-                    land_time.setSeconds(pred_landing.loc.time);
-                    content += '<br/>Ascent: ' + pred_landing.ascent_rate.toFixed(1) + 'm/s';
-                    content += ' | Descent: ' + pred_landing.descent_rate.toFixed(1) + 'm/s';
-                    if (myPos != null) {
-                        let distStr;
-                        let distance = map.distance(myPos, pred_landing.loc);
-                        if (distance > 2000) {
-                            distStr = (distance / 1000).toFixed(1) + 'km';
-                        }
-                        else {
-                            distStr = distance.toFixed(0) + 'm';
-                        }
-                        content += '<br/>Distance: ' + distStr;
-                        let bearing = getBearing(myPos.lat, myPos.lng, pred_landing.loc.lat, pred_landing.loc.lon);
-                        content += ' | Bearing: ' + bearing.toFixed(0) + '\u00B0';
-                    }
-                    content += '<br/>Landing time: ' + land_time.toLocaleTimeString();
-                    content += '<br/>Updated: ' + pred_landing.time.toLocaleTimeString();
-                }
-                handle.marker.bindPopup(content);
+                path.marker.bindPopup(content);
             }
         }
         fetchSondes(ui, mapRadiusKm);
