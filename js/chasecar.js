@@ -2,10 +2,6 @@ let chaseDebug = true;
 
 const chaseUploadInterval = 15;            // in seconds
 
-if (chaseDebug) {
-    var fakeCorrds = [57.00, 25.00];
-}
-
 let chaseData = {
 callSign : 'Voldemort',
 antenna : 'Portable 1/4 monopole',
@@ -22,7 +18,6 @@ if (chaseMode) {
 function getCookie(cname) {
     let name = cname + '=';
     let decodedCookie = decodeURIComponent(document.cookie);
-    //console.log(document.cookie);
     let ca = decodedCookie.split(";");
     for(let i = 0; i <ca.length; i++) {
         let c = ca[i];
@@ -38,7 +33,6 @@ function getCookie(cname) {
 
 function loadChaseParameters() {
     let lastChaseUpload = Date.now();
-
 
     if (getCookie("chaseDataCallSign") != "") {
         chaseData.callSign = getCookie("chaseDataCallSign");
@@ -62,7 +56,7 @@ function loadChaseParameters() {
     document.cookie = "chaseDataCallSign=" + chaseData.callSign + ";" + expires + ";path=/;SameSite=None; Secure";
     document.cookie = "chaseDataAntenna=" + chaseData.antenna + ";" + expires + ";path=/;SameSite=None; Secure";
     document.cookie = "chaseDataEmail=" + chaseData.email + ";" + expires + ";path=/;SameSite=None; Secure";
-    
+
     setInterval( doSomethingWithChasePOST, chaseUploadInterval * 1000);
 }
 
@@ -72,21 +66,12 @@ function doSomethingWithChasePOST() {
     }
     catch (err) {
         console.log('No myPos variable!');
-        if (!chaseDebug) return;
+        return;
     }
     
     let altitude = isNaN(myPos.altitude) ? 0 : myPos.altitude;
-    
-    if (chaseDebug) {
-        //console.log(fakeCorrds, myPos);
-        altitude = 50;
-        fakeCorrds[0] +=0.001;
-        fakeCorrds[1] +=0.001;
-        doChaseUpload(fakeCorrds[0], fakeCorrds[1], altitude, chaseData.callSign, chaseData.antenna, chaseData.email);
-    } else {
-        doChaseUpload(myPos.latlng.latitude, myPos.latlng.longitude, altitude, chaseData.callSign, chaseData.antenna, chaseData.email);
-    }
 
+    doChaseUpload(myPos.latlng.latitude, myPos.latlng.longitude, altitude, chaseData.callSign, chaseData.antenna, chaseData.email);
 }
 
 function doChaseUpload(lat, lon, alt, callsign, antenna, email) {
