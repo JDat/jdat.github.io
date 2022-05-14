@@ -71,7 +71,7 @@ function doSomethingWithChasePOST() {
     
     let altitude = isNaN(myPos.altitude) ? 0 : myPos.altitude;
 
-    doChaseUpload(myPos.latlng.latitude, myPos.latlng.longitude, altitude, chaseData.callSign, chaseData.antenna, chaseData.email);
+    doChaseUpload(myPos.lat, myPos.lng, altitude, chaseData.callSign, chaseData.antenna, chaseData.email);
 }
 
 function doChaseUpload(lat, lon, alt, callsign, antenna, email) {

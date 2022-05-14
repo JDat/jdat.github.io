@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Meteosonde tracker by YL3JG</title>
+    <title>TrackerDrive (Based on YL3JG work)</title>
 
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <link rel="shortcut icon" type="image/x-icon" href="img/radiosonde.png" />
+    <!-- <link rel="shortcut icon" type="image/x-icon" href="img/radiosonde.png" /> -->
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.8.0/dist/leaflet.css" integrity="sha512-hoalWLoI8r4UszCkZ5kL8vayOGVae1oxXe/2A4AO6J9+580uKHDO3JdHb7NzwwzK5xr/Fs0W40kiNHxM9vyTtQ==" crossorigin="" />
     <script src="https://unpkg.com/leaflet@1.8.0/dist/leaflet.js" integrity="sha512-BB3hKbKWOc9Ez/TAwyWxNXeoV9c1v6FIeYiBieIWkpLjauysF18NzgR1MBNBXf8/KABdlkX68nAhlwcDFLGPCQ==" crossorigin=""></script>
@@ -121,6 +121,8 @@
             myCircleAccuracy.setLatLng(e.latlng);
             myCircleAccuracy.setRadius(radius);
             myCirclePos.setLatLng(e.latlng);
+            myCircleAccuracy.bringToFront();
+            myCirclePos.bringToFront();
             myPos = e.latlng;
         }
 
@@ -137,15 +139,7 @@
         fetchListeners();
         
         function addListeners(name, loc, mobile) {
-
-            var marker;
-            let myIcon = L.icon({
-                //iconUrl: 'car-blue.png',
-                iconUrl: 'img/car.png',
-                iconSize: [16,20],
-                //iconAnchor: [27.22],
-            });
-
+            var markers = [];
             var found = -1;
             for (key in listeners) {
                 if (listeners[key].name === name) {
@@ -155,19 +149,31 @@
             }
             if (found >= 0) {
                 //console.log('arr.loc', listeners[found].loc, 'indata', loc);
-                marker = listeners[found].marker;
+                markers = listeners[found].markers;
                 listeners[found].loc.lat = loc.lat;
                 listeners[found].loc.lon = loc.lon;
-                marker.setLatLng([listeners[found].loc.lat, listeners[found].loc.lon]);
+                markers[0].setLatLng([listeners[found].loc.lat, listeners[found].loc.lon]);
+                if (markers[1] != null) {
+                    markers[1].setLatLng([listeners[found].loc.lat, listeners[found].loc.lon]);
+                }
+                //marker.setLatLng([listeners[found].loc.lat, listeners[found].loc.lon]);
+
             } else {
                 if (mobile === true ) {
-                    marker = L.marker([loc.lat, loc.lon], {icon: myIcon});
+                    //marker = L.marker([loc.lat, loc.lon], {icon: myIcon});
+
+                    let chaseCircleLarge = L.circle(mapCenter, {radius: 100, fillColor: '#008000', fillOpacity: 0.01, color: '#00FF00'}).addTo(map);
+                    let chaseCircleSmall = L.circleMarker(mapCenter, {radius: 6, fillColor: '#008000', fillOpacity: 0.01, color: '#00FF00', weight: 3}).addTo(map);
+                    markers = [chaseCircleLarge, chaseCircleSmall];
+                    markers[0].addTo(map);
+                    markers[1].addTo(map);
                 } else {
-                    marker = L.circleMarker([loc.lat, loc.lon], {radius: 6, fillColor: '#008000', fillOpacity: 0.6, color: '#000000', weight: 1 });
+                    markers[0] = L.circleMarker([loc.lat, loc.lon], {radius: 6, fillColor: '#008000', fillOpacity: 0.6, color: '#000000', weight: 1 });
+                    markers[1] = null;
+                    markers[0].addTo(map);
                 }
-                marker.bindTooltip(name);
-                marker.addTo(map);
-                listeners.push({name: name, loc: loc, marker: marker});
+                markers[0].bindTooltip(name);
+                listeners.push({name: name, loc: loc, markers: markers});
             }
 
         };
@@ -181,23 +187,25 @@
         const ui = {
             addSonde: function(data) {
                 // Called when a new sonde is discovered - should add it to the map as a graphical object (marker) and return some handle
-                //let marker = L.circleMarker([data.lat, data.lon], { radius: 9, fillColor: '#FF0000', fillOpacity: 0.6, color: '#000000', weight: 1 });
+                let marker = L.circleMarker([data.lat, data.lon], { radius: 9, fillColor: '#FF0000', fillOpacity: 0.6, color: '#000000', weight: 1 });
 
-                let payloadIcon = L.icon({
-                    iconUrl: 'img/payload.png',
-                    iconSize: [16,20],
-                    //iconAnchor: [27.22],
-                });
+                //let payloadIcon = L.icon({
+                    //iconUrl: 'img/payload.png',
+                    //iconSize: [16,20],
+                    ////iconAnchor: [27.22],
+                //});
 
-                let marker = L.marker([data.lat, data.lon], {icon: payloadIcon});
-                //marker.setStyle({fillColor: sondeColorAged});
+                //let marker = L.marker([data.lat, data.lon], {icon: payloadIcon});
+                marker.setStyle({fillColor: sondeColorAged});
                 marker.addTo(map);
+                marker.bringToFront();
                 marker.bindTooltip(data.serial); // .openTooltip();
                 return marker;
             },
             updateSonde: function(marker, data) {
                 // Called when a new data packet is received for a sonde - should reposition the graphical object (marker) and update the popup content
                 marker.setLatLng([data.lat, data.lon]);
+                marker.bringToFront();
                 let content = '<b>';
                 content += '<a href="#"  onClick="navigator.clipboard.writeText(\'' + data.serial + '\');">';
                 content += data.serial;
@@ -259,36 +267,36 @@
                     content += hours.toFixed(0) + 'h ' + minutes.toFixed(0) + 'min';
                 }
 
-                let baloonIcon = L.icon({
-                    iconUrl: 'img/balloon.png',
-                    iconSize: [16,20],
-                    //iconAnchor: [27.22],
-                });
+                //let baloonIcon = L.icon({
+                    //iconUrl: 'img/balloon.png',
+                    //iconSize: [16,20],
+                    ////iconAnchor: [27.22],
+                //});
 
-                let parachuteIcon = L.icon({
-                    iconUrl: 'img/parachute.png',
-                    iconSize: [16,20],
-                    //iconAnchor: [27.22],
-                });
+                //let parachuteIcon = L.icon({
+                    //iconUrl: 'img/parachute.png',
+                    //iconSize: [16,20],
+                    ////iconAnchor: [27.22],
+                //});
 
-                let payloadIcon = L.icon({
-                    iconUrl: 'img/payload.png',
-                    iconSize: [16,20],
-                    //iconAnchor: [27.22],
-                });
+                //let payloadIcon = L.icon({
+                    //iconUrl: 'img/payload.png',
+                    //iconSize: [16,20],
+                    ////iconAnchor: [27.22],
+                //});
 
                 if (ageSeconds < sondeMaxAge) {
                     if (data.vel_v > 0) {
-                        //marker.setStyle({fillColor: sondeColorAscent});
-                        marker.setIcon(baloonIcon);
+                        marker.setStyle({fillColor: sondeColorAscent});
+                        //marker.setIcon(baloonIcon);
                     } else {
-                        //marker.setStyle({fillColor: sondeColorDescent});
-                        marker.setIcon(parachuteIcon);
+                        marker.setStyle({fillColor: sondeColorDescent});
+                        //marker.setIcon(parachuteIcon);
                     }
                 }
                 else {
-                    //marker.setStyle({fillColor: sondeColorAged});
-                    marker.setIcon(payloadIcon);
+                    marker.setStyle({fillColor: sondeColorAged});
+                    //marker.setIcon(payloadIcon);
                 }
                 content += ' ago';
                 if (data.uploader_callsign != null) {
