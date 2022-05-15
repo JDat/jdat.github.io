@@ -218,9 +218,9 @@
                     urlStr += ',myLon=';
                     urlStr += myPos.lng;
                 }
-                
+
                 if (chaseData.callSign != null) {
-                    urlStr += ';callSign=';
+                    urlStr += ',callSign=';
                     urlStr += chaseData.callSign;
                 }
                 urlStr += '" target="_blank" ';
@@ -403,7 +403,7 @@
                     content += '<br/>Updated: ' + pred_landing.time.toLocaleTimeString();
                 }
                 handle.marker.bindPopup(content);
-                marker.bringToBack();
+                handle.marker.bringToBack();
             }
         }
         fetchSondes(ui, mapRadiusKm);

@@ -12,6 +12,7 @@
 
     <script>
         let url = window.document.URL;
+        url = url.split('#')[1];
         document.getElementById("demo").innerHTML = url;
     </script>
 </body>

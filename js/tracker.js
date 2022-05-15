@@ -77,8 +77,8 @@ function fetchSondes(ui, mapRadiusKm) {
         const lastRXDate = new Date(sondeList[key].data.time_received);
         const ageSeconds = (Date.now() - lastRXDate) / 1000;
         if (ageSeconds > sondeMaxAge) {
-          console.log('Not fetching path for old sonde');
-          return;
+          console.log('Old sonde:' + key + '\tage: ' + (ageSeconds / 3600).toFixed(0) +' hours');
+          continue;
         }
         // Schedule downloading of archived flight data after some random time not to annoy the server
         const timeoutMillis = 2500 + Math.floor(Math.random() * 6500);
@@ -124,7 +124,7 @@ function decodeFrame(sondeList, data, ui) {
           ui.extendPath(sondeList[sondeID].path, loc);
         }
         catch (error) {
-          console.log('Error while updating sonde data: ' + error);
+          console.log('Error while updating sonde data:', error);
         }
       }
       else {
