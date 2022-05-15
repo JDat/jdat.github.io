@@ -179,7 +179,7 @@
         };
 
         fetchSites(function(name, loc) {
-            let marker = L.circleMarker([loc.lat, loc.lon], { radius: 7, fill: false, color: '#000000', weight: 3 });
+            let marker = L.circleMarker([loc.lat, loc.lon], { radius: 7, fillColor: '#FF0000', fillOpacity: 0.01, color: '#000000', weight: 3 });
             marker.bindTooltip(name);
             marker.addTo(map);
         });
@@ -335,7 +335,7 @@
                 content += '<br/>';
                 content += '<a href="#"  onClick="navigator.clipboard.writeText(\''
                 content += data.lat.toFixed(5) + ' ' + data.lon.toFixed(5);
-                 content += '\');">';
+                content += '\');">';
                 content += data.lat.toFixed(5) + ' ' + data.lon.toFixed(5);
                 content += '</a>';
                 marker.bindPopup(content);
@@ -358,6 +358,7 @@
 
                     let content = lastPoint.lat.toFixed(5) + ' ' + lastPoint.lon.toFixed(5);
                     marker.bindPopup(content);
+                    marker.bringToBack();
 
                     return { path: path, marker: marker };
                 }
@@ -402,6 +403,7 @@
                     content += '<br/>Updated: ' + pred_landing.time.toLocaleTimeString();
                 }
                 handle.marker.bindPopup(content);
+                marker.bringToBack();
             }
         }
         fetchSondes(ui, mapRadiusKm);
