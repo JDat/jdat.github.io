@@ -206,10 +206,33 @@
                 // Called when a new data packet is received for a sonde - should reposition the graphical object (marker) and update the popup content
                 marker.setLatLng([data.lat, data.lon]);
                 marker.bringToFront();
+                let urlStr = '<a href="sondereport.html#sondeID=';
+                urlStr += data.serial;
+                urlStr += ',sondeLat=';
+                urlStr += data.lat;
+                urlStr += ',sondeLon=';
+                urlStr += data.lon;
+                if (myPos != null) {
+                    urlStr += ',myLat=';
+                    urlStr += myPos.lat;
+                    urlStr += ',myLon=';
+                    urlStr += myPos.lng;
+                }
+                
+                if (chaseData.callSign != null) {
+                    urlStr += ';callSign=';
+                    urlStr += chaseData.callSign;
+                }
+                urlStr += '" target="_blank" ';
+                urlStr += 'onClick="navigator.clipboard.writeText(\'';
+                urlStr += data.serial;
+                urlStr += '\');">';
+                urlStr += data.serial;
+                urlStr += '</a>';
+
                 let content = '<b>';
-                content += '<a href="#"  onClick="navigator.clipboard.writeText(\'' + data.serial + '\');">';
-                content += data.serial;
-                content += '</a>';
+                //content += '<a href="#"  onClick="navigator.clipboard.writeText(\'' + data.serial + '\');">';
+                content += urlStr;
                 content += '</b> | ';
                 
                 if (data.subtype != null) {

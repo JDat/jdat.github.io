@@ -74,6 +74,12 @@ function fetchSondes(ui, mapRadiusKm) {
       console.log('Loaded ' + sondeListSize + ' sondes');
 
       for (const key in sondeList) {
+        const lastRXDate = new Date(sondeList[key].data.time_received);
+        const ageSeconds = (Date.now() - lastRXDate) / 1000;
+        if (ageSeconds > sondeMaxAge) {
+          console.log('Not fetching path for old sonde');
+          return;
+        }
         // Schedule downloading of archived flight data after some random time not to annoy the server
         const timeoutMillis = 2500 + Math.floor(Math.random() * 6500);
         setTimeout(function() {
