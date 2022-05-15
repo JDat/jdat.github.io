@@ -8,47 +8,122 @@
 </head>
 
 <body>
+    <div>
+        <table><tbody>
+            <tr>
+                <td align="right">Serial:</td>
+                <td><input type="text" id="txtSerial"></td>
+            </tr>
+            <tr>
+                <td align="right">Lat/Lon:</td>
+                <td><input type="text" id="txtLatLon"></td>
+            </tr>
+            <tr>
+                <td align="right">Altitude:</td>
+                <td><input type="text" id="txtAlt"></td>
+            </tr>
+            <tr>
+                <td align="right">Sonde:
+                    <input type="radio" id="chkFromSonde" name="coordSource" value="">
+                </td>
+                <td><input type="text" id="txtFromSonde" readonly></td>
+            </tr>
+            <tr>
+                <td align="right">Phone:
+                    <input type="radio" id="chkFromPhone" name="coordSource" value="">
+                </td>
+                <td><input type="text" id="txtFromPhone" readonly></td>
+            </tr>
+            <tr>
+                <td align="right">Custom:
+                    <input type="radio" id="chkCustom" name="coordSource" value="">
+                </td>
+                <td><input type="text" id="txtCustom"></td>
+            </tr>
+            <tr>
+                <td align="right">Callsign:</td>
+                <td><input type="text" id="txtCall"></td>
+            </tr>
+            <tr>
+                <td align="right">Recovered:</td>
+                <td>
+                    <input type="radio" id="chkRecoveredYes" name="isRecovered" value="Yes">YES
+                    <input type="radio" id="chkRecoveredNo" name="isRecovered" value="No">NO
+                </td>
+            </tr>
+            <tr>
+                <td align="right">Notes:</td>
+                <td><input type="text" id="txtNotes"></td>
+            </tr>
+            <tr>
+                <td align="right">Time:</td>
+                <td><input type="text" id="txtTime" readonly></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td><input type="Button" id="btnSubmit" value="Submit" onClick="doStuff()"></td>
+            </tr>
+        </tbody></table>
+    </div>
     <p id="demo"></p>
 
     <script>
+        // serial for tests: 20024469
         let url = window.document.URL;
-        url = url.split('#')[1];
-        let paramArray = url.split(',');
-        var paramObj = [];
-        for (key in paramArray) {
-            //paramObj.push(paramArray[key].split('='));
-            let paramName = paramArray[key].split('=')[0];
-            let paramValue = paramArray[key].split('=')[1];
-            paramObj[paramName] = paramValue;
-        }
+
         const d = new Date;
         let t = d.toISOString();
-        let data = `{"datetime: "` + t + `",
-            "serial: "` + paramObj.sondeID + `",
-            "lat: "` + paramObj.sondeLat + `",
-            "lon: "` + paramObj.sondeLon + `",
-            "alt: "` + paramObj.sondeAlt + `",
-            "recovered: "` + true + `",
-            "recovered_by: "` + paramObj.callSign + `",
-            "description: "` + `"cool!"
-        }`;
-        document.getElementById("demo").innerHTML = data;
-        //document.getElementById("demo").innerHTML = url;
+        var paramObj = [];
+
+        function doStuff() {
+            parseIncomingData(document.URL);
+
+            console.log("URL params: ", paramObj);
         
-        let xhr = new XMLHttpRequest();
+            doPostRecovery();
+        }
+        
+        function parseIncomingData(url) {
+            url = url.split('#')[1];
+            let paramArray = url.split(',');
+            for (key in paramArray) {
+                //paramObj.push(paramArray[key].split('='));
+                let paramName = paramArray[key].split('=')[0];
+                let paramValue = paramArray[key].split('=')[1];
+                paramObj[paramName] = paramValue;
+            }
+        }
 
-        xhr.onreadystatechange = function () {
-           if (xhr.readyState === 4) {
-              //console.log(xhr.status);
-              //console.log(xhr.statusText);
-              //console.log(xhr.responseText.toString());
-           }};
+        function doPostRecovery() {
+            let data = `{"datetime: "` + t + `",
+                "serial: "` + paramObj.sondeID + `",
+                "lat: "` + paramObj.sondeLat + `",
+                "lon: "` + paramObj.sondeLon + `",
+                "alt: "` + paramObj.sondeAlt + `",
+                "recovered: "` + true + `",
+                "recovered_by: "` + paramObj.callSign + `",
+                "description: "` + `"cool!"
+            }`;
 
-        //xhr.open("PUT", url);
-        //xhr.setRequestHeader("Content-Type", "application/json");
-        //xhr.setRequestHeader("Date", t);
-        //xhr.setRequestHeader("User-Agent", "kgTrack-0.0.1");
-        //xhr.send(data);
+            console.log("Post data: " + data);
+            //document.getElementById("demo").innerHTML = data;
+            //document.getElementById("demo").innerHTML = url;
+
+            let xhr = new XMLHttpRequest();
+
+            xhr.onreadystatechange = function () {
+               if (xhr.readyState === 4) {
+                  //console.log(xhr.status);
+                  //console.log(xhr.statusText);
+                  //console.log(xhr.responseText.toString());
+               }};
+
+            //xhr.open("PUT", url);
+            //xhr.setRequestHeader("Content-Type", "application/json");
+            //xhr.setRequestHeader("Date", t);
+            //xhr.setRequestHeader("User-Agent", "kgTrack-0.0.1");
+            //xhr.send(data);
+        }
     </script>
 </body>
 </html>

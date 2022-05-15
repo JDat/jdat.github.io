@@ -212,12 +212,14 @@
                 urlStr += data.lat;
                 urlStr += ',sondeLon=';
                 urlStr += data.lon;
-                if (myPos != null) {
-                    urlStr += ',myLat=';
-                    urlStr += myPos.lat;
-                    urlStr += ',myLon=';
-                    urlStr += myPos.lng;
-                }
+                urlStr += ',sondeAlt=';
+                urlStr += data.alt;
+                //if (myPos != null) {
+                    //urlStr += ',myLat=';
+                    //urlStr += myPos.lat;
+                    //urlStr += ',myLon=';
+                    //urlStr += myPos.lng;
+                //}
 
                 if (chaseData.callSign != null) {
                     urlStr += ',callSign=';
